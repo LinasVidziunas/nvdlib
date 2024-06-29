@@ -115,6 +115,10 @@ def __get_with_generator(product, headers, parameters, limit,
                 print(f'Request failed. Retrying in {rate_delay} seconds...')
                 time.sleep(rate_delay)
                 rate_delay *= 2
+            except requests.exceptions.ConnectionError:
+                print(f'Connection failed. Retrying in {rate_delay} seconds...')
+                time.sleep(rate_delay)
+                rate_delay *= 2
 
         raw.encoding = 'utf-8'
         raw.raise_for_status()
