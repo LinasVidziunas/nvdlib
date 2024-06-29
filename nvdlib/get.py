@@ -105,6 +105,10 @@ def __get_with_generator(product, headers, parameters, limit,
                     print(f'Request returned a rate limit error. Retrying in {rate_delay} seconds...')
                     time.sleep(rate_delay)
                     rate_delay *= 2
+                if str(raw.status_code).startswith('5'):
+                    print(f'Request failed. Retrying in {rate_delay} seconds...')
+                    time.sleep(rate_delay)
+                    rate_delay *= 2
                 else:
                     break
             except requests.exceptions.ReadTimeout:
