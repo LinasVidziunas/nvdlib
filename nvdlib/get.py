@@ -98,14 +98,19 @@ def __get_with_generator(product, headers, parameters, limit,
             print('Filter:\n' + link + stringParams)
         rate_delay = 1
         while True:
-            raw = requests.get(link, params=stringParams,
-                               headers=headers, timeout=30)
-            if raw.status_code == 403:
-                print(f'Request returned a rate limit error. Retrying in {rate_delay} seconds...')
+            try:
+                raw = requests.get(link, params=stringParams,
+                                   headers=headers, timeout=30)
+                if raw.status_code == 403:
+                    print(f'Request returned a rate limit error. Retrying in {rate_delay} seconds...')
+                    time.sleep(rate_delay)
+                    rate_delay *= 2
+                else:
+                    break
+            except requests.exceptions.ReadTimeout:
+                print(f'Request failed. Retrying in {rate_delay} seconds...')
                 time.sleep(rate_delay)
                 rate_delay *= 2
-            else:
-                break
 
         raw.encoding = 'utf-8'
         raw.raise_for_status()
