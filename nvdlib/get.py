@@ -84,7 +84,7 @@ def __get(product, headers, parameters, limit, verbose, delay):
 
 
 def __get_with_generator(product, headers, parameters, limit,
-                         verbose, delay):
+                         verbose, delay, max_delay=30):
     # Get the default 2000 items to see the totalResults and determine pages required.
     if product == 'cve':
         link = 'https://services.nvd.nist.gov/rest/json/cves/2.0?'
@@ -98,8 +98,11 @@ def __get_with_generator(product, headers, parameters, limit,
             [k if v is None else f"{k}={v}" for k, v in parameters.items()])
         if verbose:
             logger.debug('Filter:\n' + link + stringParams)
-        rate_delay = 1
+        rate_delay = 6
         while True:
+            if rate_delay > max_delay:
+                rate_delay = max_delay
+
             try:
                 raw = requests.get(link, params=stringParams,
                                    headers=headers, timeout=30)
