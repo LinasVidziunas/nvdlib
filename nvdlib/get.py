@@ -1,8 +1,10 @@
 import requests
 import time
+import logging
 
 from json.decoder import JSONDecodeError
 
+logger = logging.getLogger(__name__)
 
 def __get(product, headers, parameters, limit, verbose, delay):
     """Calculate required pages for multiple requests, send the GET request with the search criteria, return list of CVEs or CPEs objects."""
@@ -20,7 +22,7 @@ def __get(product, headers, parameters, limit, verbose, delay):
     stringParams = '&'.join(
         [k if v is None else f"{k}={v}" for k, v in parameters.items()])
     if verbose:
-        print('Filter:\n' + link + stringParams)
+        logger.debug('Filter:\n' + link + stringParams)
 
     raw = requests.get(link, params=stringParams, headers=headers, timeout=30)
     raw.encoding = 'utf-8'
@@ -31,8 +33,8 @@ def __get(product, headers, parameters, limit, verbose, delay):
         if 'message' in raw:
             raise LookupError(raw['message'])
     except JSONDecodeError:
-        print('Invalid search criteria syntax: ' + str(raw))
-        print('Attempted search criteria: ' + str(parameters))
+        logger.debug('Invalid search criteria syntax: ' + str(raw))
+        logger.debug('Attempted search criteria: ' + str(parameters))
 
     if not delay:
         delay = 6
@@ -62,7 +64,7 @@ def __get(product, headers, parameters, limit, verbose, delay):
             stringParams = '&'.join(
                 [k if v is None else f"{k}={v}" for k, v in parameters.items()])
             if verbose:
-                print('Filter:\n' + link + stringParams)
+                logger.debug('Filter:\n' + link + stringParams)
             try:
                 getReq = requests.get(
                     link, params=stringParams, headers=headers, timeout=30)
@@ -70,10 +72,10 @@ def __get(product, headers, parameters, limit, verbose, delay):
                 getData = getReq.json()[path]
                 time.sleep(delay)
             except JSONDecodeError:
-                print('JSONDecodeError')
-                print('Something went wrong: ' + str(getReq))
-                print('Attempted search criteria: ' + str(stringParams))
-                print('URL: ' + getReq.request.url)
+                logger.debug('JSONDecodeError')
+                logger.debug('Something went wrong: ' + str(getReq))
+                logger.debug('Attempted search criteria: ' + str(stringParams))
+                logger.debug('URL: ' + getReq.request.url)
                 getReq.raise_for_status()
             rawTemp.extend(getData)
             startIndex += 2000
@@ -95,28 +97,28 @@ def __get_with_generator(product, headers, parameters, limit,
         stringParams = '&'.join(
             [k if v is None else f"{k}={v}" for k, v in parameters.items()])
         if verbose:
-            print('Filter:\n' + link + stringParams)
+            logger.debug('Filter:\n' + link + stringParams)
         rate_delay = 1
         while True:
             try:
                 raw = requests.get(link, params=stringParams,
                                    headers=headers, timeout=30)
                 if raw.status_code == 403:
-                    print(f'Request returned a rate limit error. Retrying in {rate_delay} seconds...')
+                    logger.debug(f'Request returned a rate limit error. Retrying in {rate_delay} seconds...')
                     time.sleep(rate_delay)
                     rate_delay *= 2
                 if str(raw.status_code).startswith('5'):
-                    print(f'Request failed. Retrying in {rate_delay} seconds...')
+                    logger.debug(f'Request failed. Retrying in {rate_delay} seconds...')
                     time.sleep(rate_delay)
                     rate_delay *= 2
                 else:
                     break
             except requests.exceptions.ReadTimeout:
-                print(f'Request failed. Retrying in {rate_delay} seconds...')
+                logger.debug(f'Request failed. Retrying in {rate_delay} seconds...')
                 time.sleep(rate_delay)
                 rate_delay *= 2
             except requests.exceptions.ConnectionError:
-                print(f'Connection failed. Retrying in {rate_delay} seconds...')
+                logger.debug(f'Connection failed. Retrying in {rate_delay} seconds...')
                 time.sleep(rate_delay)
                 rate_delay *= 2
 
@@ -128,8 +130,8 @@ def __get_with_generator(product, headers, parameters, limit,
             if 'message' in raw:
                 raise LookupError(raw['message'])
         except JSONDecodeError:
-            print('Invalid search criteria syntax: ' + str(raw))
-            print('Attempted search criteria: ' + str(parameters))
+            logger.debug('Invalid search criteria syntax: ' + str(raw))
+            logger.debug('Attempted search criteria: ' + str(parameters))
         yield raw
 
         totalResults = raw['totalResults']
@@ -140,16 +142,16 @@ def __get_with_generator(product, headers, parameters, limit,
 
         if verbose and startIndex == 0:
             if limit:
-                print(f'Query returned {limit} total records')
+                logger.debug(f'Query returned {limit} total records')
             else:
-                print(f'Query returned {totalResults} total records')
+                logger.debug(f'Query returned {totalResults} total records')
 
         if verbose and not limit:
             if startIndex < totalResults:
-                print(
+                logger.debug(
                     f'Getting {product} batch {raw["startIndex"]} to {startIndex}')
             else:
-                print(
+                logger.debug(
                     f'Getting {product} batch {raw["startIndex"]} to {totalResults}')
 
         if limit or startIndex > totalResults:
